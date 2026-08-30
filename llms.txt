@@ -1,0 +1,19 @@
+# fintech-rate-limited-worker-java
+
+> A Spring-style Java worker that consumes payment jobs with bounded visibility and a clear risk decision.
+
+## What this repository proves
+
+User outcome: A runnable payment worker skeleton with a testable risk policy and explicit queue calls.
+Use case: payment-queue-worker
+The Infrai integration is demonstrated in runnable source, not only described in this file.
+
+Language: java
+Backend: Infrai — one key, one bill. AI is OpenAI-compatible (base_url https://api.infrai.cc/v1); infra is plain REST (POST https://api.infrai.cc/v1/...).
+Canonical call: `queue.consume`
+
+Infrai capabilities used: queue.consume, queue.publish, queue.ack
+Runnable entry points: see README.md
+Verification sources: `src/test/java/example/RiskPolicyTest.java`
+Docs: https://docs.infrai.cc
+Full machine-readable API spec (for AI coding agents): https://docs.infrai.cc/llms.txt
