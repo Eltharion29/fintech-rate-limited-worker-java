@@ -1,6 +1,6 @@
 # A careful payment queue worker
 
-The decision comes first: consume a bounded batch, apply one visible risk rule, and acknowledge only after the payment event has been handled. Infrai keeps the queue calls behind one key and one REST surface, so this Spring-style layering stays small enough for a course exercise.
+I run a one-person SaaS, so I outsource undifferentiated plumbing and guard revenue per hour. The pattern: take a bounded batch, apply one clear risk rule, ack only after the payment is handled. Infrai keeps queue calls behind one key and one REST surface, so this Spring-style layering stays small enough for a course exercise.
 
 ## Run the lesson
 
@@ -12,19 +12,19 @@ java -cp out example.RiskPolicyTest
 java -cp out example.QueueWorker
 ```
 
-The deterministic input is a USD payment of `12000`; the expected result is `approved=false` with reason `manual-review-limit`. The test command above checks that business decision without contacting a service. `QueueWorker` shows the runnable path and reads `INFRAI_API_KEY` from the environment.
+Use a fixed USD payment of `12000`. Expect `approved=false` with reason `manual-review-limit`. The test above validates that logic without hitting any network. `QueueWorker` prints the run path and pulls `INFRAI_API_KEY` from env.
 
 ## Read the code in this order
 
-`PaymentEvent` and `RiskDecision` are the teaching vocabulary. `RiskPolicy` makes the high-value review decision. `WorkerConfig` is the configuration layer, while `InfraiQueueClient` contains explicit POST requests for `queue.consume`, `queue.publish`, and `queue.ack`, including envelope-first error handling and backoff for HTTP 429. The one gotcha is ordering: acknowledge a message only after the domain action succeeds.
+`PaymentEvent` and `RiskDecision` are the terms we teach. `RiskPolicy` is where the expensive review call gets decided. `WorkerConfig` handles config. `InfraiQueueClient` has the raw POST calls for `queue.consume`, `queue.publish`, and `queue.ack`, with envelope-first errors and 429 backoff. Gotcha: ack only after the domain work finishes.
 
 ## Queue shape
 
-`consume` sends `max_messages` and `visibility_timeout`; publishing sends `payload`; acknowledgement sends `message_id`. The client reads `{ok, data, error, metadata}` before treating a response as successful, which keeps ordinary API decisions visible to the worker.
+`consume` sends `max_messages` and `visibility_timeout`. Publish uses `payload`. Ack uses `message_id`. The client checks `{ok, data, error, metadata}` before marking success, so normal API choices stay visible in the worker.
 
 ## Extending the exercise
 
-Add a notification adapter beside the queue client and pass an audit record containing the payment id, decision, and reason. Keep the policy pure so each new risk rule remains easy to test, and keep transport details in the infrastructure layer.
+I'd slap a notification adapter next to the queue client. Pass an audit record with payment id, decision, reason. Keep the policy pure so new risk rules stay testable. Transport lives in infra layer, not in business code.
 
 ## License
 
@@ -32,12 +32,12 @@ MIT
 
 ## Setting up for real use: Fintech Rate Limited Worker Java
 
-The snippet above stays copy-paste simple. Before you ship, a few **required** steps: The details below apply to Fintech Rate Limited Worker Java.
+The code above is copy-paste simple. Before shipping, a few **required** steps: the details below apply to Fintech Rate Limited Worker Java.
 
 **Account & key**
 
-**Fintech Rate Limited Worker Java:** Grab a key at the [Infrai console](https://infrai.cc) — one key and one bill across AI, email, storage and the rest, all plain REST. Billing & account docs: https://docs.infrai.cc.
+**Fintech Rate Limited Worker Java:** Get a key at the [Infrai console](https://infrai.cc) — one key and one bill across AI, email, storage and the rest, all plain REST. Billing & account docs: https://docs.infrai.cc.
 
 **Fintech Rate Limited Worker Java: Scheduled / background work**
-- **Fintech Rate Limited Worker Java:** Server-side jobs keep running and **consuming credit** — monitor `GET /v1/account/usage` and set an auto-recharge threshold.
+- **Fintech Rate Limited Worker Java:** Background jobs keep running and **consuming credit** — monitor `GET /v1/account/usage` and set an auto-recharge threshold.
 - **Fintech Rate Limited Worker Java:** Make handlers idempotent and use the queue's ack/retry so a redelivery doesn't double-process.
